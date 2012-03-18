@@ -46,36 +46,19 @@ public:
 };
 
 class ThreadLocalPerformanceInfo {
-    std::stack<Times> start_times;
-    std::map<const char*, Durations> duration_map;
+    std::stack<Times> _start_times;
+    std::map<const char*, Durations> _duration_map;
 public:
+    ~ThreadLocalPerformanceInfo();
+
     void start();
     /// Non-dynamic strings only please!
     void stop(const char* const name);
-};
-
-
-class PerformanceInfoStore {
-public:
-
-    ~PerformanceInfoStore();
-
-    static boost::thread_specific_ptr<ThreadLocalPerformanceInfo> tss;
+    void dump();
+    void insert(const char* n, const Durations& d) { _duration_map[n] = d; }
     
-    std::vector<ThreadLocalPerformanceInfo*> threads_data;
-    
-    ThreadLocalPerformanceInfo& get() {
-        auto* tlpi = tss.get();
-        if (unlikely(!tlpi)) {
-            tlpi = new ThreadLocalPerformanceInfo;
-            threads_data.push_back(tlpi);
-            tss.reset(tlpi);
-        }
-        return *tlpi;
-    }
+    ThreadLocalPerformanceInfo& operator+=(ThreadLocalPerformanceInfo& rhs);
 };
-
-extern PerformanceInfoStore performance_store;
 
 // Assumption: These should only ever exist on the stack, no rly.
 class ScopePerformanceMonitor {
@@ -86,7 +69,36 @@ public:
     ~ScopePerformanceMonitor();
 };
 
-#define A4PERF_MONITOR(name) ScopePerformanceMonitor a4perf_ ## __LINE__ ## _(name)
+class PerformanceInfoStore {
+    Times _program_start;
+    ThreadLocalPerformanceInfo _total_info;
+public:
+    ~PerformanceInfoStore();
+
+    static boost::thread_specific_ptr<ThreadLocalPerformanceInfo> tss;
+    
+    void update_total(const ThreadLocalPerformanceInfo& rhs) {
+        _total_info += rhs;
+    }
+    
+    ThreadLocalPerformanceInfo& get() {
+        auto* tlpi = tss.get();
+        if (unlikely(!tlpi)) {
+            tlpi = new ThreadLocalPerformanceInfo;
+            tss.reset(tlpi);
+            threads_data.push_back(tlpi);
+        }
+        return *tlpi;
+    }
+};
+
+extern PerformanceInfoStore performance_store;
+
+#define CONCATENATE_DETAIL(x, y) x##y
+#define CONCATENATE(x, y) CONCATENATE_DETAIL(x, y)
+#define MAKE_UNIQUE(x) CONCATENATE(x, __COUNTER__)
+
+#define A4PERF_MONITOR(name) a4::ScopePerformanceMonitor MAKE_UNIQUE(a4perf)(name)
 
 
 } // namespace a4

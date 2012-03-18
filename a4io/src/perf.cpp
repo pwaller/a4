@@ -13,19 +13,38 @@ namespace a4 {
 PerformanceInfoStore performance_store;
 boost::thread_specific_ptr<ThreadLocalPerformanceInfo> PerformanceInfoStore::tss;
 
+~ThreadLocalPerformanceInfo() {
+    performance_store.update_total(*this);
+}
+
 PerformanceInfoStore::~PerformanceInfoStore() {
-    foreach (auto* thread_data, threads_data)
-        delete thread_data;
-    VERBOSE("PerformanceInfoStore cleanup..");
+    ThreadLocalPerformanceInfo total_info;
+    total_info.insert("Whole Program", Times() - _program_start);
+    
+    total_info.dump();
 }
 
 void ThreadLocalPerformanceInfo::start() {
-    start_times.push(Times());
+    _start_times.push(Times());
 }
 
 void ThreadLocalPerformanceInfo::stop(const char* const name) {
-    duration_map[name] += Times() - start_times.top();
-    start_times.pop();
+    _duration_map[name] += Times() - _start_times.top();
+    _start_times.pop();
+}
+
+ThreadLocalPerformanceInfo& ThreadLocalPerformanceInfo::operator+=(ThreadLocalPerformanceInfo& rhs) {
+    foreach (auto i, rhs._duration_map) {
+        _duration_map[i.first] += i.second;
+    }
+    return *this;
+}
+
+void ThreadLocalPerformanceInfo::dump() {
+    VERBOSE("Performance Information:");
+    foreach (auto i, _duration_map) {
+        VERBOSE(" func: ", i.first, " : ", i.second._cpu_duration, " -- ", i.second._wall_duration);
+    }
 }
 
 ScopePerformanceMonitor::ScopePerformanceMonitor(const char* name) 
