@@ -5,6 +5,14 @@ a4_version = "0.1.0"
 
 import waflib.Logs as msg
 
+from waflib import TaskGen
+TaskGen.declare_chain(
+        name         = 'upx',
+        rule         = '${UPX} ${SRC} ${TGT}',
+        shell        = False,
+        ext_out      = '.upx',
+)
+
 def go(ctx):
     from waflib.Options import commands, options
     from os import getcwd
@@ -99,18 +107,27 @@ def configure(conf):
     # comment the following line for "production" run (not recommended)
     conf.env.append_value("CXXFLAGS", ["-g", "-Wall", "-Werror", "-ansi", "-fno-strict-aliasing"])
     conf.env.append_value("CXXFLAGS", ["-std=c++0x"])
+    # Causes linker errors when enabled (wasn't workign before, previously 
+    # said "LDFLAGS" which waf doesn't recognize
+    # conf.env.append_value("LINKFLAGS", ["-Wl,--as-needed"])
     conf.env.append_value("RPATH", [conf.env.LIBDIR])
     conf.env.CXXFLAGS_OPTFAST = "-O2"
     conf.env.CXXFLAGS_OPTSIZE = "-Os"
     conf.env.A4_VERSION = a4_version
 
     # find useful libraries
-    conf.check(features='cxx cxxprogram', lib="m", uselib_store="DEFLIB")
-    conf.check(features='cxx cxxprogram', lib="dl", uselib_store="DEFLIB")
-    conf.check(features='cxx cxxprogram', lib="rt", uselib_store="DEFLIB",
-               mandatory=conf.is_linux())
-    conf.check(features='cxx cxxprogram', lib="pthread", uselib_store="DEFLIB")
+    for lib in ["m", "rt", "dl", "pthread"]:
+        conf.check(features='cxx cxxprogram', lib=lib, uselib_store="DEFLIB")
+    
+    conf.env.LIB_DEFLIB_STATIC = conf.env.LIB_DEFLIB
+    
     conf.check(features='cxx cxxprogram', lib="z", header_name="zlib.h", uselib_store="DEFLIB")
+    # Needed to prevent
+    # /usr/lib64/libstdc++.so.6: version `CXXABI_1.3.5' not found 
+    # or `GLIBCXX_3.4.15' style errors
+    conf.check(features='cxx cxxprogram', stlib="stdc++", uselib_store="DEFLIB_STATIC")
+    
+    conf.find_program("upx", mandatory=False)
 
     check_cxx11_features(conf)
 
@@ -140,6 +157,11 @@ def configure(conf):
         msg.error("You can get a known working good version in this directory by")
         msg.error("running ./get_protobuf.sh or specifying --with-protobuf=/path/")
         raise
+    conf.check_cfg(package="protobuf", atleast_version="2.4.0",
+        uselib_store="PROTOBUF_STATIC", args='--libs --cflags --static')
+    if "pthread" in conf.env.STLIB_PROTOBUF_STATIC:
+        conf.env.STLIB_PROTOBUF_STATIC.remove("pthread")
+    
 
     # find snappy
     conf.check_with(conf.check_cxx, "snappy", lib="snappy",
@@ -155,6 +177,8 @@ def configure(conf):
             kwargs["includes"] = pjoin(check_path, "include")
             kwargs["libs"] = pjoin(check_path, "lib")
         conf.check_boost(*args, **kwargs)
+    #conf.env.STLIB_BOOST_STATIC.append("rt")
+
     
     try:
         conf.check_with(check_boost, "boost", lib=boost_libs, mt=True,
@@ -194,9 +218,17 @@ def configure(conf):
     conf.to_log("Final environment:")
     conf.to_log(conf.env)
     conf.write_config_header('a4io/src/a4/config.h')
-
+    
 def check_cxx11_features(conf):
     
+    
+    for key in conf.env.keys():
+        if not key.startswith("INCLUDES_"):
+            continue
+        if key.endswith("_STATIC"):
+            continue
+        conf.env[key + "_INC"] = conf.env[key]
+
     conf.check_cxx(
         msg="Checking for C++11 auto keyword",
         fragment="""
@@ -255,7 +287,7 @@ def check_cxx11_features(conf):
         mandatory=False)
 
 def build(bld):
-    from os.path import join as pjoin
+    from os.path import exists, join as pjoin
     packs = ["a4io", "a4store", "a4process", "a4hist", "a4atlas", "a4root", "a4plot"]
 
     if bld.options.enable_atlas_ntup:
@@ -267,6 +299,7 @@ def build(bld):
 
     libsrc =  list(add_pack(bld, "a4io", [], ["SNAPPY"]))
     libsrc += add_pack(bld, "a4store", ["a4io"], ["CERN_ROOT_SYSTEM"])
+    libsrc += add_pack(bld, "a4process", ["a4io"], ["SNAPPY"])
     libsrc += add_pack(bld, "a4process", ["a4io", "a4store"])
     libsrc += add_pack(bld, "a4hist",
         ["a4io", "a4store", "a4process"], ["CERN_ROOT_SYSTEM"])
@@ -274,9 +307,12 @@ def build(bld):
         libsrc += add_pack(bld, "a4root",
             ["a4io", "a4store", "a4process", "a4hist"], ["CERN_ROOT_SYSTEM"])
     libsrc += add_pack(bld, "a4atlas",
-        ["a4io", "a4store", "a4process", "a4hist", "a4root"])
-    #bld(features="cxx cxxstlib", target="a4", name="a4static",
-    #    vnum=a4_version, use=libsrc)
+                ["a4io", "a4store", "a4process", "a4hist", "a4root"])
+    
+    print "USE:", libsrc
+    #raise RuntimeError	
+    bld(features="cxx cxxstlib", target="a4", name="a4static",
+        vnum=a4_version, use=libsrc)
     #bld(features="cxx cxxshlib", target="a4", vnum=a4_version, use=libsrc)
     
     # Install configuration header
@@ -520,16 +556,23 @@ def add_pack(bld, pack, other_packs=[], use=[]):
     to_use += [pjoin(p,p) for p in other_packs]
     incs = ["%s/src" % p for p in [pack] + other_packs]
     libnm = pjoin(pack, pack)
+    
+    def includes(uses):
+        return [(u + "_INC") for u in uses]
+    def statics(uses): 
+        return [(u + "_STATIC") if ("LIB_"+u+"_STATIC"   in bld.env or
+                                      "STLIB_"+u+"_STATIC" in bld.env)
+                 else u for u in uses]
 
     # Build objects
     objs = []
     if lib_cppfiles:
         bld.objects(source=lib_cppfiles, target=libnm+"_obj", cxxflags="-fPIC",
-            use=to_use+["OPTFAST"], includes=incs)
+            use=includes(to_use)+["OPTFAST"], includes=incs)
         objs.append(libnm+"_obj")
     if proto_cc:
-        bld.objects(source=proto_cc, target=libnm+"_pbobj", cxxflags="-fPIC -Os",
-            use=to_use, includes=incs)
+        bld.objects(source=proto_cc, target=libnm+"_pbobj", cxxflags="-fPIC",
+            use=includes(to_use)+["OPTSIZE"], includes=incs)
         objs.append(libnm+"_pbobj")
 
     # Build libraries
@@ -554,6 +597,13 @@ def add_pack(bld, pack, other_packs=[], use=[]):
     for app, fls in app_cppfiles.items():
         if fls:
             bld.program(source=fls, target=pjoin(pack,app), **opts)
+            stopts = opts.copy()
+            stopts["use"] = statics(to_use) + ["a4static"]
+            print "Pack", pack, "Statics: ", stopts["use"]
+            bld.program(source=fls, target=pjoin(pack, app) + "-static", **stopts)
+            bld.program(rule="strip -s ${SRC} -o ${TGT}",
+                        source=pjoin(pack, app) + "-static",
+                        target=pjoin(pack, app) + "-static-stripped")
 
     opts["install_path"] = None
     # Build test applications
@@ -650,6 +700,15 @@ def add_proto(bld, pack, pf_node, includes):
     bld(rule=rule, source=pf_node, target=targets)
     return targets
 
+        if and_static and not static:
+            libn = libn + "_STATIC"
+            conf.parse_flags("-I{0}/include -L{0}/lib".format(where), uselib=libn,
+                             force_static=True)
+            conf.check_cxx(msg="             ... static", 
+                           stlib=lib, uselib_store=libn, use=[libn])
+        conf.msg("Checking for static boost", "...", color="WHITE")
+        conf.check_boost(lib=boost_libs, mt=True, includes=boost_inc,
+            libs=boost_lib, abi="-a4", uselib_store="BOOST_STATIC", static=True)
 def do_installcheck(bld):
     import os
     # set test env
