@@ -4,15 +4,16 @@ boost_libs = "system filesystem program_options thread chrono"
 a4_version = "0.1.0"
 
 import waflib.Logs as msg
+from waflib.TaskGen import before_method, feature
 
-from waflib import TaskGen
-TaskGen.declare_chain(
-        name         = 'upx',
-        rule         = '${UPX} ${SRC} ${TGT}',
-        shell        = False,
-        ext_out      = '.upx',
-)
-
+@feature('fully_static')
+@before_method('apply_link')
+def make_fully_static(self):
+    self.env.SHLIB_MARKER = '-Wl,-Bdynamic -lpthread -lrt -ldl -Wl,-Bstatic'.split()
+    #self.env.STLIB_MARKER = ''
+    for flag in "-v -static-libstdc++ -static-libgcc".split():
+        self.env.append_unique('LINKFLAGS', flag)
+   
 def go(ctx):
     from waflib.Options import commands, options
     from os import getcwd
@@ -125,7 +126,7 @@ def configure(conf):
     # Needed to prevent
     # /usr/lib64/libstdc++.so.6: version `CXXABI_1.3.5' not found 
     # or `GLIBCXX_3.4.15' style errors
-    conf.check(features='cxx cxxprogram', stlib="stdc++", uselib_store="DEFLIB_STATIC")
+    # conf.check(features='cxx cxxprogram', stlib="stdc++", uselib_store="DEFLIB_STATIC")
     
     conf.find_program("upx", mandatory=False)
 
@@ -137,6 +138,14 @@ def configure(conf):
         root_cfg = pjoin(conf.options.with_cern_root_system, "bin/root-config")
     conf.check_cfg(path=root_cfg, package="", uselib_store="CERN_ROOT_SYSTEM",
                    args='--libs --cflags', mandatory=False)
+    conf.check_cfg(path=root_cfg, package="", uselib_store="CERN_ROOT_SYSTEM_STATIC",
+        args='--libs --cflags')
+    
+    conf.env.LIB_CERN_ROOT_SYSTEM_STATIC = [] # ["pcre", "lzma"]
+    conf.env.LIBPATH_CERN_ROOT_SYSTEM_STATIC = []
+    conf.env.INCLUDES_CERN_ROOT_SYSTEM_STATIC = ["/data/pwaller/Projects/External/ROOT/build-normal/include"]
+    conf.env.STLIBPATH_CERN_ROOT_SYSTEM_STATIC = ["/data/pwaller/Projects/External/ROOT/build-normal/lib/"]
+    conf.env.STLIB_CERN_ROOT_SYSTEM_STATIC = ["Root", "pcre", "lzma"]
 
     # find protobuf
     def find_protoc(*args, **kwargs):
@@ -600,10 +609,13 @@ def add_pack(bld, pack, other_packs=[], use=[]):
             stopts = opts.copy()
             stopts["use"] = statics(to_use) + ["a4static"]
             print "Pack", pack, "Statics: ", stopts["use"]
-            bld.program(source=fls, target=pjoin(pack, app) + "-static", **stopts)
+            bld.program(features="fully_static", source=fls, target=pjoin(pack, app) + "-static", **stopts)
             bld.program(rule="strip -s ${SRC} -o ${TGT}",
                         source=pjoin(pack, app) + "-static",
                         target=pjoin(pack, app) + "-static-stripped")
+            bld.program(rule="${UPX} ${SRC} -o ${TGT}",
+                        source=pjoin(pack, app) + "-static-stripped",
+                        target=pjoin(pack, app) + "-static-stripped-packed")
 
     opts["install_path"] = None
     # Build test applications
