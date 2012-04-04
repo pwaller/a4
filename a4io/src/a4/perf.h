@@ -57,7 +57,7 @@ public:
     void dump();
     void insert(const char* n, const Durations& d) { _duration_map[n] = d; }
     
-    ThreadLocalPerformanceInfo& operator+=(ThreadLocalPerformanceInfo& rhs);
+    ThreadLocalPerformanceInfo& operator+=(const ThreadLocalPerformanceInfo& rhs);
 };
 
 // Assumption: These should only ever exist on the stack, no rly.
@@ -86,7 +86,7 @@ public:
         if (unlikely(!tlpi)) {
             tlpi = new ThreadLocalPerformanceInfo;
             tss.reset(tlpi);
-            threads_data.push_back(tlpi);
+            //threads_data.push_back(tlpi);
         }
         return *tlpi;
     }

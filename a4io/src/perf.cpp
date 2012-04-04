@@ -13,7 +13,11 @@ namespace a4 {
 PerformanceInfoStore performance_store;
 boost::thread_specific_ptr<ThreadLocalPerformanceInfo> PerformanceInfoStore::tss;
 
-~ThreadLocalPerformanceInfo() {
+ThreadLocalPerformanceInfo::~ThreadLocalPerformanceInfo() {
+    VERBOSE("Update");
+    foreach (auto i, _duration_map) {
+        VERBOSE(" func: ", i.first, " : ", i.second._cpu_duration, " -- ", i.second._wall_duration);
+    }
     performance_store.update_total(*this);
 }
 
@@ -33,7 +37,7 @@ void ThreadLocalPerformanceInfo::stop(const char* const name) {
     _start_times.pop();
 }
 
-ThreadLocalPerformanceInfo& ThreadLocalPerformanceInfo::operator+=(ThreadLocalPerformanceInfo& rhs) {
+ThreadLocalPerformanceInfo& ThreadLocalPerformanceInfo::operator+=(const ThreadLocalPerformanceInfo& rhs) {
     foreach (auto i, rhs._duration_map) {
         _duration_map[i.first] += i.second;
     }
