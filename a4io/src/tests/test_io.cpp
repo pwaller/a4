@@ -1,6 +1,9 @@
 #include <iostream>
 
 #include <a4/io/Tests.pb.h>
+
+#include <a4/perf.h>
+
 #include <a4/message.h>
 #include <a4/output.h>
 #include <a4/output_stream.h>
@@ -13,6 +16,8 @@ using namespace a4::io;
 int main(int argc, char ** argv) {
     const int N = 1000;
     {
+        A4PERF_MONITOR("Write test_io.a4");
+        
         A4Output a4o("test_io.a4", "TestEvent");
 
         shared<OutputStream> stream = a4o.get_stream();
@@ -27,6 +32,8 @@ int main(int argc, char ** argv) {
         stream->metadata(m);
     }
     {
+        A4PERF_MONITOR("Read test_io.a4");
+        
         A4Input in;
         in.add_file("test_io.a4", false);
         in.add_file("test_io.a4", false);

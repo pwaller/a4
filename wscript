@@ -114,6 +114,9 @@ def configure(conf):
 
     check_cxx11_features(conf)
 
+    conf.check_cxx(msg="Checking for systemtap", 
+        header_name="sys/sdt.h", define_name="HAVE_SYSTEMTAP")
+
     # find root
     root_cfg = "root-config"
     if conf.options.with_cern_root_system:
@@ -155,6 +158,7 @@ def configure(conf):
             kwargs["includes"] = pjoin(check_path, "include")
             kwargs["libs"] = pjoin(check_path, "lib")
         conf.check_boost(*args, **kwargs)
+    
     
     try:
         conf.check_with(check_boost, "boost", lib=boost_libs, mt=True,

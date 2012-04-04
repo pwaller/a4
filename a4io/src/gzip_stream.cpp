@@ -39,6 +39,8 @@
 
 #include "gzip_stream.h"
 
+#include <a4/perf.h>
+
 namespace a4 {
 namespace io {
 
@@ -290,6 +292,7 @@ GzipOutputStream::~GzipOutputStream() {
 
 // private
 int GzipOutputStream::Deflate(int flush) {
+  A4PERF_MONITOR("GzipOutputStream::Deflate");
   int error = Z_OK;
   do {
     if ((sub_data_ == NULL) || (zcontext_.avail_out == 0)) {

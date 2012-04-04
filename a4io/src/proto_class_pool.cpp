@@ -57,6 +57,7 @@ namespace a4{ namespace io{
                                    shared<google::protobuf::io::CodedInputStream> coded_in,
                                    size_t size)
     {
+        A4PERF_MONITOR("InputStreamImpl::parse_message");
         assert(coded_in);
         //std::cerr << "Parse from stream " << coded_in.get() << "\tSZ " << size << "\tID " << class_id << std::endl;
         auto msg = get_new_message(class_id);

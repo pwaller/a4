@@ -33,6 +33,7 @@ using google::protobuf::Reflection;
 #include <a4/output_stream.h>
 #include <a4/message.h>
 #include <a4/dynamic_message.h>
+#include <a4/perf.h>
 
 #include <a4/io/A4Stream.pb.h>
 
@@ -529,6 +530,7 @@ int main(int argc, char** argv)
 try {
     a4::Fatal::enable_throw_on_segfault();
     a4::io::set_program_name(argv[0]);
+    A4PERF_MONITOR("main");
 
     bool is_a4info = (std::string("a4info") == std::string(basename(argv[0])));
     DEBUG("argv[0] = ", argv[0]);

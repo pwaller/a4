@@ -4,6 +4,7 @@
 #include <boost/function.hpp>
 
 #include <a4/a4io.h>
+#include <a4/perf.h>
 #include <a4/types.h>
 
 #include <a4/io/A4.pb.h>
@@ -39,7 +40,10 @@ namespace io {
         template <typename ProtoClass>
         shared<Message> from_stream(google::protobuf::io::CodedInputStream* instr) {
             shared<ProtoClass> msg(new ProtoClass());
-            msg->ParseFromCodedStream(instr);
+            {
+                A4PERF_MONITOR("ParseFromCodedStream");
+                msg->ParseFromCodedStream(instr);
+            }
             return msg;
         }
         

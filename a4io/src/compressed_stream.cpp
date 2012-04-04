@@ -2,6 +2,7 @@
 // Author: johannes@ebke.org (Johannes Ebke)
 
 #include <a4/config.h>
+#include <a4/perf.h>
 
 #include <iostream>
 #include <cmath>
@@ -67,7 +68,11 @@ bool GenericCompressionInputStream::Next(const void** data, int* size) {
     shared<char> tempbuffer(new char[compressed_size], array_delete<char>()); 
     _sub_stream->ReadRaw(tempbuffer.get(), compressed_size);
     
-    RawUncompress(tempbuffer.get(), compressed_size);
+
+    {
+        A4PERF_MONITOR("snappy::RawUncompress");
+        RawUncompress(tempbuffer.get(), compressed_size);
+    }
     
     reset_input_stream(); // TODO(ebke): probably call this every Limit/BLOCKSIZE
     
@@ -106,7 +111,10 @@ bool GenericCompressionOutputStream::Flush()
     
     size_t compressed_size = 0;
     shared<char> compressed_data(new char[MaxCompressedLength(size)], array_delete<char>());
-    compressed_size = RawCompress(_input_buffer.get(), size, compressed_data.get());
+    {
+        A4PERF_MONITOR("snappy::RawCompress");
+        compressed_size = RawCompress(_input_buffer.get(), size, compressed_data.get());
+    }
     
     assert(compressed_size <= 2*BLOCKSIZE);
     
