@@ -384,6 +384,7 @@ try
         ("number,n", po::value<int>(&number)->default_value(-1), "maximum number of events to process (default: all)")
         ("per,p", po::value<string>(&metakey), "granularity of output by metadata key (e.g. period, run, lumiblock...). Default is input granularity.")
         ("split-per,s", po::value<string>(&split_metakey), "granularity of output by metadata key (e.g. period, run, lumiblock...). Default is input granularity.")
+        ("config,c", po::value<string>(), (string("configuration file [default is '") + config_filename + "']").c_str())
         ("compression", po::value(&_compression_string)->default_value("ZLIB 1"), "compression level '[TYPE] [LEVEL]'");
 
     po::positional_options_description positional_options;
@@ -439,6 +440,11 @@ try
     // After finishing all option reading, notify the result
     po::notify(arguments);
     configuration->read_arguments(arguments);
+    
+    std::stringstream ss(_compression_string);
+    std::string ctype;
+    ss >> ctype >> _compression_level;
+    _compression_type = a4::io::OutputStream::compression_type(ctype);
     
     a4::io::set_log_level(debug ? 5 : verbose ? 4 : quiet ? 2 : 3);
     
