@@ -1,24 +1,35 @@
-#include <boost/variant.hpp>
-#include <boost/variant/get.hpp>
+#include <a4/dynamic_message.h>
+
+#include <boost/type_traits.hpp>
 
 // From CERN ROOT Rtypes.h
 // typedef unsigned long long ULong64_t;
 typedef unsigned long long ULong64_t;
 
+
 #include <iostream>
 
-typedef boost::variant<uint32_t, uint64_t> TestVariant;
-
 int main(int argc, char* argv[]) {
-    std::cout << "Sizeof(uint64_t) = " << sizeof(uint64_t) << std::endl;
-    std::cout << "Sizeof(ULong64_t) = " << sizeof(ULong64_t) << std::endl;
 
-    uint64_t value = 1234;
-    TestVariant content = value;
+    std::cout << "Convertable? " << (boost::is_convertible<ULong64_t, uint64_t>::value ? "true" : "false") << std::endl;
+    std::cout << "Same? " << (boost::is_same<ULong64_t, uint64_t>::value ? "true" : "false") << std::endl;
+
+    a4::io::FieldContent fc;
     
-    std::cout << "Fetching as uint64_t: "; 
-    std::cout << boost::get<uint64_t>(content) << std::endl;
-    std::cout << "Fetching as ULong64_t: " << std::endl; 
-    std::cout << boost::get<ULong64_t>(content) << std::endl;
+    uint64_t i = 100;
+    fc.assign(i);
+    
+    ULong64_t j = fc;
+    
+    DEBUG("Variant typeid: ", fc.type());
+    DEBUG("j = ", j);
+            
+    std::cout << "Fieldcontent value: '" << fc.str() << "'" << std::endl;
+    
+    fc.assign(10.);
+    DEBUG("Variant typeid: ", fc.type());
+    double x = fc;
+    DEBUG("Value: ", x);
+    
     return 0;
 }
