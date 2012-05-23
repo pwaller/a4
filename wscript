@@ -233,7 +233,7 @@ def build(bld):
         ["a4io", "a4store", "a4process"], ["CERN_ROOT_SYSTEM"])
     if bld.env.LIB_CERN_ROOT_SYSTEM:
         libsrc += add_pack(bld, "a4root",
-            ["a4io", "a4store", "a4process", "a4hist"], ["CERN_ROOT_SYSTEM"])
+            ["a4io", "a4store", "a4process", "a4hist", "a4atlas"], ["CERN_ROOT_SYSTEM"])
     libsrc += add_pack(bld, "a4atlas",
         ["a4io", "a4store", "a4process", "a4hist", "a4root"])
     #bld(features="cxx cxxstlib", target="a4", name="a4static",
@@ -460,6 +460,12 @@ def add_pack(bld, pack, other_packs=[], use=[]):
     # Add compilation rules
     to_use = ["DEFLIB", "PROTOBUF", "BOOST"] + use
     to_use += [pjoin(p,p) for p in other_packs]
+    
+    # Hack hack hack, see #151 #
+    if pack == "a4root":
+        # Prevent circular dependency
+        to_use.remove("a4atlas/a4atlas")
+    
     incs = ["%s/src" % p for p in [pack] + other_packs]
     libnm = pjoin(pack, pack)
 
@@ -495,7 +501,11 @@ def add_pack(bld, pack, other_packs=[], use=[]):
     opts["includes"] = incs
     for app, fls in app_cppfiles.iteritems():
         if fls:
-            bld.program(source=fls, target=pjoin(pack,app), **opts)
+            tmpopts = opts.copy()
+            if pack == "a4root":
+                # Hack hack hack, see #151 #
+                tmpopts["use"] += ["A4ATLAS", "a4atlas/a4atlas"]
+            bld.program(source=fls, target=pjoin(pack,app), **tmpopts)
 
     opts["install_path"] = None
     # Build test applications
