@@ -10,19 +10,19 @@
 #include "D3PDMakerInterfaces/ID3PD.h"
 #include "D3PDMakerInterfaces/IObjFillerTool.h"
 
-
 namespace D3PD {
+class IA4D3PD :
+    public ID3PD {
+public:
 
+    virtual ~IA4D3PD() {}
 
-   class IA4D3PD : public ID3PD {
-
-   public:
-      virtual ~IA4D3PD() {}
-      
-      virtual StatusCode recordInfo(std::ofstream& output, const std::string& prefix, const std::string& classname, const ToolHandle<IObjFillerTool>& tool) const = 0;
-   };
-
-
+    virtual StatusCode recordInfo(std::ofstream                    & output,
+                                  const std::string                & prefix,
+                                  const std::string                & classname,
+                                  const ToolHandle<IObjFillerTool> & tool) const
+        = 0;
+};
 }
 
 #endif

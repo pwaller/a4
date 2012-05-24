@@ -4,49 +4,44 @@
 
 #include <string>
 
+#include "AthenaBaseComps/AthAlgorithm.h"
 #include "GaudiKernel/ServiceHandle.h"
 #include "GaudiKernel/ToolHandle.h"
-#include "AthenaBaseComps/AthAlgorithm.h"
 
 #include "D3PDMakerInterfaces/ID3PDSvc.h"
-#include "D3PDMakerInterfaces/IObjFillerTool.h"
 #include "D3PDMakerInterfaces/IMetadataTool.h"
-
+#include "D3PDMakerInterfaces/IObjFillerTool.h"
 
 namespace D3PD {
+// class IReaderD3PD;
 
+class A4DumpAlg :
+    public AthAlgorithm {
+public:
 
-    // class IReaderD3PD;
+    A4DumpAlg(const std::string & name, ISvcLocator * svcloc);
 
-    class A4DumpAlg : public AthAlgorithm {
+    virtual StatusCode initialize();
+    virtual StatusCode finalize();
+    virtual StatusCode execute();
 
-    public:
-        A4DumpAlg( const std::string& name, ISvcLocator* svcloc );
+private:
 
-        virtual StatusCode initialize();
-        virtual StatusCode finalize();
-        virtual StatusCode execute();
+    ServiceHandle<ID3PDSvc>         m_d3pdSvc; /// Property: The D3PD creation service.
+    ToolHandleArray<IObjFillerTool> m_tools; /// Property: List of object filler tools to run.
+    ToolHandleArray<IMetadataTool>  m_metadataTools; /// Property: List of metadata tools to run.
 
-    private:      
-        ServiceHandle< ID3PDSvc > m_d3pdSvc; /// Property: The D3PD creation service.
-        ToolHandleArray< IObjFillerTool > m_tools; /// Property: List of object filler tools to run.
-        ToolHandleArray< IMetadataTool > m_metadataTools; /// Property: List of metadata tools to run.
+    std::string              m_filename; ///< The output filename
+    std::string              m_tuplePath; ///< The D3PD base name
+    std::vector<std::string> m_prefixes; ///< Variable name prefixes
+    std::vector<std::string> m_classnames; ///< Reader class names
 
-        std::string m_filename; ///< The output filename
-        std::string m_tuplePath; ///< The D3PD base name
-        std::vector< std::string > m_prefixes; ///< Variable name prefixes
-        std::vector< std::string > m_classnames; ///< Reader class names
+    std::string m_dir; ///< Directory where the sources should be put
 
-        std::string m_dir; ///< Directory where the sources should be put
+    std::vector<ID3PD *> m_d3pds;
 
-        std::vector< ID3PD* > m_d3pds;
-
-        bool m_booked; /// Flag that we've called book().
-
-    }; 
-
-
+    bool m_booked; /// Flag that we've called book().
+};
 }
-
 
 #endif

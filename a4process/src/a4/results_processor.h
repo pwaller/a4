@@ -9,34 +9,34 @@ using a4::store::A4Key;
 
 namespace a4 {
 namespace store {
-    class Storable;
+class Storable;
 }
 }
 
 namespace a4 {
 namespace process {
-
-
-template<class This, class ProtoMetaData, class... Args>
-shared<Storable> ResultsProcessor<This, ProtoMetaData, Args...>::_next_storable(shared<const A4Message> msg) {
-    if (!msg)
+template<class This, class ProtoMetaData, class ... Args>
+shared<Storable> ResultsProcessor<This, ProtoMetaData,
+                                  Args ...>::_next_storable(
+    shared<const A4Message> msg) {
+    if (!msg) {
         FATAL("No message!"); // TODO: Should not be fatal
-        
+    }
     if (msg->is<A4Key>()) {
         next_name = msg->as<A4Key>()->name();
         have_name = true;
         return shared<Storable>();
     }
     shared<Storable> pmsg = a4::store::message_to_storable(msg);
-    if (!pmsg)
+    if (!pmsg) {
         FATAL("Could not convert to Storable: ", typeid(*msg->message()));
-    if (!have_name)
+    }
+    if (!have_name) {
         FATAL("Storable without name: ", typeid(*msg->message()));
+    }
     have_name = false;
     return pmsg;
 }
-
-
 }
 } // namespace
 

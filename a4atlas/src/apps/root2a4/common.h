@@ -17,27 +17,34 @@ class FieldDescriptor;
 class TBranchElement;
 
 template<typename T>
-class Setter
-{
+class Setter {
 public:
-    typedef function<void (Message*, T)> ProtobufSetter;
-    typedef function<T (const Message&)> ProtobufGetter;
-    typedef function<void (ProtobufSetter, ProtobufGetter, Message*, void*)> SetterCaller;
-    
-    typedef function<void (Message*, T)> ProtobufAdder;
-    typedef function<void (Message*, TBranchElement*, const ProtobufAdder&, const FieldDescriptor*)> RepeatedSetterCaller;
+
+    typedef function<void (Message *,
+                           T)>      ProtobufSetter;
+    typedef function<T(const Message &)>
+                                    ProtobufGetter;
+    typedef function<void (ProtobufSetter, ProtobufGetter, Message *,
+                           void *)> SetterCaller;
+
+    typedef function<void (Message *,
+                           T)>                       ProtobufAdder;
+    typedef function<void (Message *, TBranchElement *, const ProtobufAdder &,
+                           const FieldDescriptor *)> RepeatedSetterCaller;
 };
 
-typedef function<shared<Message> ()> RootToMessageFactory;
-typedef function<void (Message*)>    Copier;
-typedef std::vector<Copier>          Copiers;
+typedef function<shared<Message>()> RootToMessageFactory;
+typedef function<void (Message *)>  Copier;
+typedef std::vector<Copier>         Copiers;
 
-typedef Message* MessageP;
+typedef Message * MessageP;
 
-typedef function<void (Message**, size_t)> SubmessageSetter;
-typedef std::vector<SubmessageSetter> SubmessageSetters;
+typedef function<void (Message **, size_t)> SubmessageSetter;
+typedef std::vector<SubmessageSetter>       SubmessageSetters;
 
-RootToMessageFactory make_message_factory(TTree*, const Descriptor*,
-    const std::string&, MessageFactory*);
+RootToMessageFactory make_message_factory(TTree *,
+                                          const      Descriptor *,
+                                          const std::string &,
+                                          MessageFactory *);
 
 std::vector<std::string> get_list_of_leaves();

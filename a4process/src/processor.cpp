@@ -11,15 +11,12 @@
 
 namespace a4 {
 namespace process {
-
-
-void OutputAdaptor::write(const google::protobuf::Message& m) {
+void OutputAdaptor::write(const google::protobuf::Message & m) {
     write(shared<const A4Message>(new A4Message(m)));
 }
 
-void OutputAdaptor::metadata(const google::protobuf::Message& m) {
+void OutputAdaptor::metadata(const google::protobuf::Message & m) {
     metadata(shared<const A4Message>(new A4Message(m)));
 }
-
 }
 }

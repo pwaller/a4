@@ -1,11 +1,11 @@
 #include <iostream>
 
+#include <a4/input.h>
+#include <a4/input_stream.h>
 #include <a4/io/A4Stream.pb.h>
 #include <a4/message.h>
 #include <a4/output.h>
 #include <a4/output_stream.h>
-#include <a4/input.h>
-#include <a4/input_stream.h>
 
 using namespace std;
 using namespace a4::io;
@@ -18,7 +18,7 @@ int main(int argc, char ** argv) {
         shared<OutputStream> stream = a4o.get_stream();
 
         TestEvent e;
-        for(int i = 0; i < N; i++) {
+        for (int i = 0; i < N; i++) {
             e.set_event_number(i);
             stream->write(e);
         }
@@ -33,12 +33,12 @@ int main(int argc, char ** argv) {
         int cnt = 0;
         while (shared<InputStream> stream = in.get_stream()) {
             while (shared<A4Message> msg = stream->next()) {
-                if (const TestEvent* te = msg->as<TestEvent>()) {
-                    assert((cnt++%N) == te->event_number());
+                if (const TestEvent * te = msg->as<TestEvent>()) {
+                    assert((cnt++ % N) == te->event_number());
                 }
             }
-            if (stream->error()) throw "AJS";
+            if (stream->error()) { throw "AJS"; }
         }
-        assert(cnt == 2*N);
+        assert(cnt == 2 * N);
     }
 }

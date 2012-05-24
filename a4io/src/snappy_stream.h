@@ -19,64 +19,68 @@ using google::protobuf::io::CodedOutputStream;
 
 namespace a4 {
 namespace io {
-
 // A ZeroCopyInputStream that reads compressed data through Snappy
-class SnappyInputStream : public BaseCompressedInputStream {
- public:
+class SnappyInputStream :
+    public BaseCompressedInputStream {
+public:
 
-  explicit SnappyInputStream(ZeroCopyInputStream* sub_stream);
-  virtual ~SnappyInputStream();
-  
-  void reset_input_stream();
-  
-  // implements ZeroCopyInputStream ----------------------------------
-  bool Next(const void** data, int* size);
-  void BackUp(int count);
-  bool Skip(int count);
-  int64_t ByteCount() const { return _byte_count; };
+    explicit SnappyInputStream(ZeroCopyInputStream * sub_stream);
+    virtual ~SnappyInputStream();
 
- private:
+    void reset_input_stream();
 
-  CodedInputStream* _sub_stream;
-  ZeroCopyInputStream* _raw_stream;
+    // implements ZeroCopyInputStream ----------------------------------
+    bool Next(const void ** data, int * size);
+    void BackUp(int count);
+    bool Skip(int count);
 
-  int _backed_up_bytes;
-  shared<char> _output_buffer;
-  size_t _output_buffer_size;
+    int64_t ByteCount() const { return _byte_count; }
 
-  size_t _byte_count;
-  
-  GOOGLE_DISALLOW_EVIL_CONSTRUCTORS(SnappyInputStream);
+private:
+
+    CodedInputStream    * _sub_stream;
+    ZeroCopyInputStream * _raw_stream;
+
+    int          _backed_up_bytes;
+    shared<char> _output_buffer;
+    size_t       _output_buffer_size;
+
+    size_t _byte_count;
+
+    GOOGLE_DISALLOW_EVIL_CONSTRUCTORS(SnappyInputStream);
 };
 
-class SnappyOutputStream : public BaseCompressedOutputStream {
- public:
-  // Create a SnappyOutputStream with default options.
-  explicit SnappyOutputStream(ZeroCopyOutputStream* sub_stream);
+class SnappyOutputStream :
+    public BaseCompressedOutputStream {
+public:
 
-  virtual ~SnappyOutputStream();
-  
-  // implements ZeroCopyOutputStream ---------------------------------
-  bool Next(void** data, int* size);
-  void BackUp(int count);
-  int64_t ByteCount() const { return _byte_count; };
+    // Create a SnappyOutputStream with default options.
+    explicit SnappyOutputStream(ZeroCopyOutputStream * sub_stream);
 
-  bool Flush();
-  bool Close() {return true; }
- private:
-  
-  CodedOutputStream* _sub_stream;
-  
-  int _backed_up_bytes;
-  shared<char> _input_buffer;
-  size_t _input_buffer_size;
-  
-  size_t _byte_count;
+    virtual ~SnappyOutputStream();
 
-  GOOGLE_DISALLOW_EVIL_CONSTRUCTORS(SnappyOutputStream);
+    // implements ZeroCopyOutputStream ---------------------------------
+    bool Next(void ** data, int * size);
+    void BackUp(int count);
+
+    int64_t ByteCount() const { return _byte_count; }
+
+    bool Flush();
+
+    bool Close() { return true; }
+private:
+
+    CodedOutputStream * _sub_stream;
+
+    int          _backed_up_bytes;
+    shared<char> _input_buffer;
+    size_t       _input_buffer_size;
+
+    size_t _byte_count;
+
+    GOOGLE_DISALLOW_EVIL_CONSTRUCTORS(SnappyOutputStream);
 };
+} // namespace io
+} // namespace protobuf
 
-}  // namespace io
-}  // namespace protobuf
-
-#endif  // A4_IO_SNAPPY_STREAM_H__
+#endif // A4_IO_SNAPPY_STREAM_H__

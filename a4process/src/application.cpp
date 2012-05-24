@@ -1,5 +1,5 @@
-#include <iostream>
 #include <fstream>
+#include <iostream>
 
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
@@ -17,9 +17,8 @@ namespace po = boost::program_options;
 
 typedef vector<string> FileList;
 
-int a4_main(int argc, char* argv[])
-try
-{
+int a4_main(int argc, char * argv[])
+try {
     // Verify that the version of the library that we linked against is
     // compatible with the version of the headers we compiled against
     //GOOGLE_PROTOBUF_VERIFY_VERSION;
@@ -29,12 +28,14 @@ try
     po::options_description config_file_options;
 
     po::options_description popt("Processing options");
+
     popt.add_options()
         ("help", "produce help message")
         ("input,i", po::value<FileList>(), "input file(s)")
         ("output,o", po::value<string>(), "output file")
         ("results,r", po::value<string>(), "result file")
-        ("config,c", po::value<string>(), (string("configuration file [") + config_filename + "]").c_str());
+        ("config,c", po::value<string>(),
+        (string("configuration file [") + config_filename + "]").c_str());
 
     po::positional_options_description positional_options;
     positional_options.add("input", -1);
@@ -50,25 +51,32 @@ try
 
     // Parse command line first
     po::variables_map arguments;
-    po::store(po::command_line_parser(argc, argv).options(commandline_options).positional(positional_options).run(), arguments);
+    po::store(po::command_line_parser(argc, argv).options(
+                  commandline_options).positional(
+                  positional_options).run(), arguments);
 
-    if (2 > argc || arguments.count("help") || !arguments.count("input"))
-    {
+    if ((2 > argc) || arguments.count("help") || !arguments.count("input")) {
         cout << "Usage: " << argv[0] << " [Options] input(s)" << endl;
         cout << commandline_options << endl;
         return 1;
     }
 
     // Parse config file
-    if (arguments.count("config")) config_filename = arguments["config"].as<string>();
+    if (arguments.count("config")) {
+        config_filename =
+            arguments["config"].as<string>();
+    }
     ifstream config_file(config_filename);
-    po::store(po::parse_config_file(config_file, config_file_options), arguments);
+    po::store(po::parse_config_file(config_file,
+                                    config_file_options), arguments);
 
     int threads = 0;
-    if (arguments.count("threads"))
+    if (arguments.count("threads")) {
         threads = arguments["threads"].as<int>();
+    }
 
     VERBOSE("Threads = ", threads);
+
 /*
     if (arguments.count("output"))
         job.set_output(arguments["output"].as<string>());
@@ -98,9 +106,7 @@ try
     //google::protobuf::ShutdownProtobufLibrary();
 
     return 0;
-}
-catch(std::exception& x)
-{
+} catch (std::exception & x) {
     // Clean Up any memory allocated by libprotobuf
     //google::protobuf::ShutdownProtobufLibrary();
 

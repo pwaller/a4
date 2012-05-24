@@ -19,4 +19,4 @@ int main(int argc, char ** argv) {
     cout << test.pass(180710, 710) << endl;
     cout << test.pass(180710, 711) << endl;
     return 0;
-};
+}

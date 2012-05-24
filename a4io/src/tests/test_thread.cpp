@@ -1,28 +1,28 @@
-#include <iostream>
-#include <functional>
 #include <boost/thread.hpp>
+#include <functional>
+#include <iostream>
 
+#include <a4/input.h>
+#include <a4/input_stream.h>
 #include <a4/io/A4Stream.pb.h>
 #include <a4/message.h>
 #include <a4/output.h>
 #include <a4/output_stream.h>
-#include <a4/input.h>
-#include <a4/input_stream.h>
 
 using namespace std;
 using namespace a4::io;
 
 const int N = 1000;
 
-void no_write(A4Output &a4o) {
+void no_write(A4Output & a4o) {
     shared<OutputStream> stream = a4o.get_stream();
 }
 
-void my_write(A4Output &a4o) {
+void my_write(A4Output & a4o) {
     shared<OutputStream> stream = a4o.get_stream();
 
     TestEvent e;
-    for(int i = 0; i < N; i++) {
+    for (int i = 0; i < N; i++) {
         e.set_event_number(i);
         stream->write(e);
     }
@@ -31,32 +31,34 @@ void my_write(A4Output &a4o) {
     stream->metadata(m);
 }
 
-void my_read(A4Input &in) {
+void my_read(A4Input & in) {
     shared<InputStream> stream = in.get_stream();
-    if (!stream) return;
+    if (!stream) { return; }
     int cnt = 0;
     while (shared<A4Message> msg = stream->next()) {
-        if (const TestEvent* te = msg->as<TestEvent>()) {
-            assert((cnt++%N) == te->event_number());
+        if (const TestEvent * te = msg->as<TestEvent>()) {
+            assert((cnt++ % N) == te->event_number());
         }
     }
-    if (stream->error())
+    if (stream->error()) {
         ERROR("stream problem in thread ", boost::this_thread::get_id());
-    assert(cnt == 5*N);
+    }
+    assert(cnt == 5 * N);
 }
 
-void no_read(A4Input &in) {
+void no_read(A4Input & in) {
     shared<InputStream> stream = in.get_stream();
-    if (!stream) return;
+    if (!stream) { return; }
     assert(stream->good());
     if (stream->error()) {
-        ERROR("stream problem in no_read thread ", boost::this_thread::get_id());
+        ERROR("stream problem in no_read thread ",
+              boost::this_thread::get_id());
     }
 }
 
 int main(int argc, char ** argv) {
     {
-        A4Output a4o("test_thread.a4", "TestEvent");
+        A4Output      a4o("test_thread.a4", "TestEvent");
         boost::thread t1(my_write, boost::ref(a4o));
         boost::thread t2(my_write, boost::ref(a4o));
         boost::thread t3(my_write, boost::ref(a4o));

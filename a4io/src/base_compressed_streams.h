@@ -5,19 +5,21 @@
 
 namespace a4 {
 namespace io {
+class BaseCompressedOutputStream :
+    public google::protobuf::io::ZeroCopyOutputStream {
+public:
 
-class BaseCompressedOutputStream : public google::protobuf::io::ZeroCopyOutputStream {
-public:    
     virtual bool Flush() = 0;
-    virtual bool Close() {return true;};
+
+    virtual bool Close() { return true; }
 };
 
-
-class BaseCompressedInputStream : public google::protobuf::io::ZeroCopyInputStream {
+class BaseCompressedInputStream :
+    public google::protobuf::io::ZeroCopyInputStream {
 public:
+
     bool ExpectAtEnd() { return true; }
 };
-
 }
 }
 
