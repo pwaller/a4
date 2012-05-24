@@ -44,3 +44,5 @@ D3PDMakerA4/
 /a4store/.waf3-*/
 /a4store/build*/
 /a4store/install*/
+
+/common/source-list
