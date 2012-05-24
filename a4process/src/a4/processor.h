@@ -8,6 +8,7 @@
 #include <a4/types.h>
 
 #include <a4/message.h>
+using a4::io::A4Message;
 #include <a4/register.h>
 
 #include <a4/object_store.h>
@@ -15,6 +16,9 @@ using a4::store::ObjectStore;
 using a4::store::ObjectBackStore;
 #include <a4/storable.h>
 using a4::store::Storable;
+
+#include "a4/output_adaptor.h"
+using a4::process::OutputAdaptor;
 
 namespace po = ::boost::program_options;
 
@@ -41,17 +45,9 @@ struct _test_process_as<This> {
     static bool process(This* that, const std::string& n, shared<Storable> s) { return false; }
 };
 
-using a4::io::A4Message;
 
 class Driver; 
 class Configuration;
-class OutputAdaptor {
-    public:
-        virtual void write(shared<const A4Message> m) = 0;
-        virtual void metadata(shared<const A4Message> m) = 0;
-        void write(const google::protobuf::Message& m);
-        void metadata(const google::protobuf::Message& m);
-};
 
 class Processor {
     public:
@@ -179,17 +175,6 @@ class Processor {
         MetadataBehavior metadata_behavior;
 };
 
-class Configuration {
-    public: 
-        virtual ~Configuration() {};
-        /// Override this to add options to the command line and configuration file
-        virtual void add_options(po::options_description_easy_init) {};
-        /// Override this to do further processing of the options from the command line or config file
-        virtual void read_arguments(po::variables_map &arguments) {};
-        virtual void setup_processor(Processor &g) {};
-        virtual Processor* new_processor() = 0;
-};
-
 template<class ProtoMessage, class ProtoMetaData = a4::io::NoProtoClass>
 class ProcessorOf : public Processor {
     public:
@@ -257,23 +242,6 @@ class ResultsProcessor : public Processor {
         std::string next_name;
         bool have_name;
         friend class a4::process::Driver;
-};
-
-
-template<class MyProcessor>
-class ConfigurationOf : public Configuration {
-    public:
-        /// Override this to setup your thread-safe Processor!
-        virtual void setup_processor(MyProcessor& g) {}
-
-        virtual void setup_processor(Processor& g) { 
-            setup_processor(dynamic_cast<MyProcessor&>(g)); 
-        }
-        virtual Processor* new_processor() {
-            Processor* p = new MyProcessor();
-            p->my_configuration = this;
-            return p;
-        }
 };
 
 

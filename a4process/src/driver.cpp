@@ -25,6 +25,10 @@ typedef chrono::duration<double> duration;
 #include <a4/output_stream.h>
 #include <a4/cpu_info.h>
 
+#include "a4/processor.h"
+#include "a4/output_adaptor.h"
+#include "a4/configuration.h"
+
 using std::string;
 using std::ifstream;
 using a4::io::A4Input;
@@ -57,128 +61,6 @@ SimpleCommandLineDriver::SimpleCommandLineDriver(Configuration* cfg)
 {
     assert(configuration);
 }
-
-class BaseOutputAdaptor : public OutputAdaptor {
-    public:
-        shared<A4Message> current_metadata;
-        std::string merge_key, split_key; 
-        A4Output* out;
-        A4Output* res;
-        shared<ObjectBackStore> backstore;
-
-        BaseOutputAdaptor(Driver* d, Processor* p, bool forward_metadata, 
-                          A4Output* out, A4Output* res) 
-            : out(out), res(res), forward_metadata(forward_metadata), 
-              in_block(false), driver(d), p(p), last_postfix("") 
-        {
-            merge_key = split_key = "";
-            outstream.reset();
-            resstream.reset();
-            backstore.reset();
-            start_block(); // This writes no metadata
-        }
-        
-        virtual ~BaseOutputAdaptor() {}
-
-        void start_block(std::string postfix="") {
-            if (out and (!outstream or postfix != last_postfix)) {
-                outstream = out->get_stream(postfix);
-                outstream->set_compression("ZLIB", 1);
-                if (forward_metadata) 
-                    outstream->set_forward_metadata();
-            }
-            if (res and (!resstream or postfix != last_postfix)) {
-                resstream = res->get_stream(postfix);
-                resstream->set_compression("ZLIB", 1);
-                resstream->set_forward_metadata();
-            }
-            backstore.reset(new ObjectBackStore());
-            driver->set_store(p, backstore->store());
-            if (outstream and forward_metadata and current_metadata) {
-                current_metadata->unionize();                
-                outstream->metadata(*current_metadata->message());
-            }
-            in_block = true;
-        }
-
-        void end_block() {            
-            if (resstream && current_metadata) {
-                current_metadata->unionize();
-                resstream->metadata(*current_metadata->message());
-            }
-            if (backstore && resstream) {
-                backstore->to_stream(*resstream);
-            }
-            backstore.reset();
-            if (outstream and !forward_metadata and current_metadata) {
-                current_metadata->unionize();
-                outstream->metadata(*current_metadata->message());
-            }
-            in_block = false;
-        }
-
-        void new_outgoing_metadata(shared<const A4Message> new_metadata) {
-            // Check if we merge the old into the new metadata
-            // and hold off on writing it.
-            bool merge = false;
-            shared<A4Message> old_metadata = current_metadata;
-
-            // Determine if merging is necessary
-            if (old_metadata && merge_key != "") {
-                merge = old_metadata->check_key_mergable(*new_metadata, merge_key);
-            }
-
-            if (merge) {
-                //std::cerr << "Merging\n" << old_metadata.message()->ShortDebugString()
-                //          << "\n...and...\n" << new_metadata.message()->ShortDebugString() << std::endl;
-                *current_metadata += *new_metadata;
-                //std::cerr << "...to...\n" << current_metadata->message()->ShortDebugString() << std::endl;
-            } else { // Normal action in case of new metadata
-                // If we are in charge of metadata, start a new block now...
-                end_block();
-
-                std::string postfix = "";
-                if (split_key != "") 
-                    postfix = new_metadata->assert_field_is_single_value(split_key);
-                current_metadata.reset(new A4Message(*new_metadata));
-
-                start_block(postfix);
-            } // end of normal action in case of new metadata
-
-        }
-
-        virtual void metadata(shared<const A4Message> m) {
-            FATAL("To write metadata manually, you have to change the metadata_behavior of the Processor!");
-        }
-    
-        void write(shared<const A4Message> m) {
-            if (!in_block) 
-                FATAL("Whoa?? Writing outside of a metadata block? How did you do this?");
-            
-            if (outstream) 
-                outstream->write(m);
-        }
-
-    protected:
-        bool forward_metadata;
-        shared<OutputStream> outstream, resstream;
-
-        bool in_block;
-        Driver* driver;
-        Processor* p;
-        std::string last_postfix;
-};
-
-class ManualOutputAdaptor : public BaseOutputAdaptor {
-    public:
-        ManualOutputAdaptor(Driver* d, Processor* p, bool forward_metadata, A4Output* out, A4Output* res) 
-            : BaseOutputAdaptor(d, p, forward_metadata, out, res) {}
-        
-        void metadata(shared<const A4Message> m) {
-            new_outgoing_metadata(m);
-        }
-};
-
 
 void SimpleCommandLineDriver::simple_thread(SimpleCommandLineDriver* self, 
     Processor* p, int limit, ProcessStats& stats) {

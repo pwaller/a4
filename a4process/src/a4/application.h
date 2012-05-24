@@ -3,6 +3,8 @@
 
 #include <a4/driver.h>
 
+#include "a4/configuration.h"
+
 namespace a4 {
     namespace io {
         class A4Input;
