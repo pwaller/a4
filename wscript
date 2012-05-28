@@ -51,7 +51,7 @@ def options(opt):
     prefix_option.help = prefix_option.help.replace(old_default, new_default)
     
     opt.load('compiler_c compiler_cxx python')
-    opt.load('boost unittest_gtest libtool compiler_magic check_with platforms',
+    opt.load('boost unittest_gtest libtool compiler_magic check_with platforms iwyu',
              tooldir="common/waf")
     opt.add_option('--with-protobuf', default=None,
         help="Also look for protobuf at the given path")
@@ -72,7 +72,7 @@ def configure(conf):
     import os
     from os.path import join as pjoin, exists
     conf.load('compiler_c compiler_cxx python')
-    conf.load('boost unittest_gtest libtool compiler_magic check_with platforms',
+    conf.load('boost unittest_gtest libtool compiler_magic check_with platforms iwyu',
               tooldir="common/waf")
 
     try:
