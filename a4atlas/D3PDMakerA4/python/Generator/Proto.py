@@ -2,6 +2,8 @@
 
 import re
 
+from logging import getLogger; log = getLogger("protogen")
+
 from difflib import SequenceMatcher
 from sys import argv
 from textwrap import dedent
@@ -97,10 +99,12 @@ TYPECODE_MAP = {
 
 TYPE_MAP = {
     "int": "int32",
+    "long": "int32",
     "float": "float",
     "double": "double",
     "short": "int32",
     "unsigned int": "uint32",
+    "unsigned long": "uint32",
     "unsigned short": "uint32",
     "std::string": "string",
 }
@@ -123,6 +127,11 @@ def type_name(t):
     if vector:
         subvector, subsubtype = is_vector(subtype)
         if subvector:
+            subsubvector, subsubsubtype = is_vector(subtype)
+            if subsubvector:
+                ## NOT HANDLED YET
+                log.warning("Not yet handled")
+                return None, None
             return 'repeated', TYPE_MAP[subsubtype]
         return 'optional', TYPE_MAP[subtype]
         
